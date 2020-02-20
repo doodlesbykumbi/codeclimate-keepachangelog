@@ -1,6 +1,6 @@
 {
   "name": "keepachangelog",
-  "description": "Changelog tells if CHANGELOG.md files are not formatted in accordance with [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).",
+  "description": "keepachangelog tells if CHANGELOG.md files are not formatted in accordance with [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).",
   "maintainer": {
     "name": "Code Climate",
     "email": "hello@codeclimate.com"
