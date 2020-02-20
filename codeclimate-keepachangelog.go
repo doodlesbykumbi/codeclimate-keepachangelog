@@ -12,18 +12,42 @@ import (
 	"github.com/codeclimate/cc-engine-go/engine"
 )
 
-func main() {
-	rootPath := "/code/"
+type validationError struct {
+	Line   int
+	Column int
+}
 
-	config, err := engine.LoadConfig()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
-		os.Exit(1)
+var validationErrRgx = regexp.MustCompile(`at line (\d+), column (\d+)`)
+
+func newValidationError(s string) *validationError {
+	errSubmatch := validationErrRgx.FindStringSubmatch(s)
+
+	if len(errSubmatch) == 0 {
+		return nil
 	}
 
+	line, _ := strconv.Atoi(errSubmatch[1])
+	column, _ := strconv.Atoi(errSubmatch[2])
+
+	return &validationError{
+		Line:   line,
+		Column: column,
+	}
+}
+
+func prefixInArr(str string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(str, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func getAnalysisFiles(rootPath string, config engine.Config) ([]string, error) {
 	var analysisFiles []string
 
-	err = filepath.Walk(rootPath, func(path string, f os.FileInfo, err error) error {
+	err := filepath.Walk(rootPath, func(path string, f os.FileInfo, err error) error {
 		if f.IsDir() {
 			return nil
 		}
@@ -34,6 +58,20 @@ func main() {
 		}
 		return err
 	})
+
+	return analysisFiles, err
+}
+
+func main() {
+	rootPath := "/code/"
+
+	config, err := engine.LoadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	analysisFiles, err := getAnalysisFiles(rootPath, config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing: %v\n", err)
 		os.Exit(1)
@@ -47,7 +85,7 @@ func main() {
 		if err != nil {
 			errOutput := strings.TrimPrefix(string(out[:]), "ERROR: ")
 
-			if vErr := NewValidationError(errOutput); vErr != nil {
+			if vErr := newValidationError(errOutput); vErr != nil {
 				path := strings.SplitAfter(path, rootPath)[1]
 
 				issue := &engine.Issue{
@@ -84,35 +122,4 @@ func main() {
 			os.Exit(1)
 		}
 	}
-}
-
-type validationError struct {
-	Line int
-	Column int
-}
-
-var validationErrRgx = regexp.MustCompile(`at line (\d+), column (\d+)`)
-func NewValidationError(s string) *validationError {
-	errSubmatch := validationErrRgx.FindStringSubmatch(s)
-
-	if len(errSubmatch) == 0 {
-		return nil
-	}
-
-	line, _ := strconv.Atoi(errSubmatch[1])
-	column, _ := strconv.Atoi(errSubmatch[2])
-
-	return &validationError{
-		Line: line,
-		Column: column,
-	}
-}
-
-func prefixInArr(str string, prefixes []string) bool {
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(str, prefix) {
-			return true
-		}
-	}
-	return false
 }

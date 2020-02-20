@@ -3,8 +3,6 @@ engines:
     enabled: true
   golint:
     enabled: true
-  govet:
-    enabled: true
   keepachangelog:
     enabled: true
     exclude_patterns:
