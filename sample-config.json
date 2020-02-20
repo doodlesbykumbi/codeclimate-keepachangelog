@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "exclude_patterns": [
+    "**",
+    "!CHANGELOG.md"
+  ],
+  "channel": "stable",
+  "include_paths": [
+    ".circleci/",
+    ".codeclimate.yml",
+    "CHANGELOG.md"
+  ],
+  "debug": "1"
+}

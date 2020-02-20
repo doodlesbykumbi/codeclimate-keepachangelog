@@ -1,0 +1,15 @@
+engines:
+  gofmt:
+    enabled: true
+  golint:
+    enabled: true
+  govet:
+    enabled: true
+  keepachangelog:
+    enabled: true
+    exclude_patterns:
+      - "**"                # exclude all
+      - "!CHANGELOG.md"
+ratings:
+  paths:
+  - "**CHANGELOG.md"
