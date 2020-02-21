@@ -1,5 +1,4 @@
 ARG BASE=1.13.1-alpine3.10
-ARG PARSE_A_CHANGELOG_VERSION=0.2.3
 FROM golang:${BASE} as build
 
 WORKDIR /usr/src/app
@@ -21,6 +20,7 @@ FROM golang:${BASE}
 LABEL maintainer="Code Climate <hello@codeclimate.com>"
 
 RUN apk update && apk upgrade && apk add bash curl-dev ruby-dev build-base ruby ruby-io-console ruby-bundler
+ARG PARSE_A_CHANGELOG_VERSION=1.0.0
 RUN gem install --no-document parse_a_changelog -v "${PARSE_A_CHANGELOG_VERSION}"
 
 RUN adduser -u 9000 -D app
