@@ -78,48 +78,69 @@ func main() {
 	}
 
 	for _, path := range analysisFiles {
-		cmd := exec.Command("parse", path)
+		output, err := execParse(path)
 
-		out, err := cmd.CombinedOutput()
+		vErr := newValidationError(output)
+		fatalErr := err != nil && vErr == nil // not merely validation err
 
-		if err != nil {
-			errOutput := strings.TrimPrefix(string(out[:]), "ERROR: ")
+		relativePath := strings.SplitAfter(path, rootPath)[1]
 
-			if vErr := newValidationError(errOutput); vErr != nil {
-				path := strings.SplitAfter(path, rootPath)[1]
+		// fatal error, bail out
+		if fatalErr {
+			exitOnRunError(relativePath, output, err)
+			return
+		}
 
-				issue := &engine.Issue{
-					Type:              "issue",
-					Check:             "Changelog/Style/Changelog",
-					Description:       fmt.Sprintf("Your changelog does not pass validation: %s", strings.TrimSuffix(errOutput, "\n")),
-					RemediationPoints: int32(50000),
-					Categories:        []string{"Style"},
-					Location: &engine.Location{
-						Path: path,
-						Positions: &engine.LineColumnPosition{
-							Begin: &engine.LineColumn{
-								Line:   vErr.Line,
-								Column: vErr.Column,
-							},
-							End: &engine.LineColumn{
-								Line:   vErr.Line,
-								Column: vErr.Column,
-							},
-						},
-					},
-				}
-				engine.PrintIssue(issue)
-				break
-			}
-
-			fmt.Fprintf(os.Stderr, "Error analyzing path: %v\n", path)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-
-			if out != nil {
-				fmt.Fprintf(os.Stderr, "parse_a_changelog output: %v\n", errOutput)
-			}
-
-			os.Exit(1)
+		// validation err, report it but keep going
+		if vErr != nil  {
+			registerIssue(relativePath, output, *vErr)
+			continue
 		}
 	}
+}
+
+func execParse(path string) (string, error) {
+	cmd := exec.Command("parse", path)
+
+	outputBytes, err := cmd.CombinedOutput()
+	output := strings.TrimPrefix(string(outputBytes), "ERROR: ")
+
+	return output, err
+}
+
+func exitOnRunError(path string, msg string, err error) {
+	fmt.Fprintf(os.Stderr, "Error analyzing path: %v\n", path)
+	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	fmt.Fprintf(os.Stderr, "parse_a_changelog output: %v\n", msg)
+
+	os.Exit(1)
+}
+
+func registerIssue(path string, msg string, vErr validationError) {
+	description := fmt.Sprintf(
+		"Your changelog does not pass validation: %s",
+		strings.TrimSuffix(msg, "\n"),
+	)
+
+	issue := &engine.Issue{
+		Type:              "issue",
+		Check:             "Changelog/Style/Changelog",
+		Description:       description,
+		RemediationPoints: int32(50000),
+		Categories:        []string{"Style"},
+		Location: &engine.Location{
+			Path: path,
+			Positions: &engine.LineColumnPosition{
+				Begin: &engine.LineColumn{
+					Line:   vErr.Line,
+					Column: vErr.Column,
+				},
+				End: &engine.LineColumn{
+					Line:   vErr.Line,
+					Column: vErr.Column,
+				},
+			},
+		},
+	}
+	engine.PrintIssue(issue)
 }
